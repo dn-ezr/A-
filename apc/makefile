@@ -1,0 +1,1 @@
+CXX_OPT = -c -g -std=gnu++14 -I ../inc
