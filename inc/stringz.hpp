@@ -7,11 +7,16 @@
  * stringz是z系列的成员之一
  */
 
-#include <apheader.hpp>
 #include <chainz.hpp>
 #include <cstring>
 
+#if defined __apheader__
 namespace ap {
+#elif
+#define OUT
+#define OPT
+#define IN
+#endif
 
 class stringz {
 
@@ -68,5 +73,8 @@ class stringz {
         static stringz json( const char* json );
 };
 
+#if defined __apheader__
 }
+#endif
+
 #endif

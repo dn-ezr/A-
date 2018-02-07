@@ -2,7 +2,6 @@
 #define __chainz__
 
 #include <functional>
-#include <apheader.hpp>
 #include <cstring>
 #include <stdexcept>
 #include <iterator>
@@ -15,7 +14,13 @@
  * 代价则是内存碎片化极为严重
  */
 
+#if defined __apheader__
 namespace ap {
+#else
+#define OUT
+#define OPT
+#define IN
+#endif
 
 
 template<typename T>
@@ -225,7 +230,7 @@ class chainz {
                     m_pool = new R[1];
                     m_pool[0] = new T(data);
                 } else {
-                    throw std::runtime_error("chainz,insert,索引超出范围");
+                    throw std::runtime_error("chainz,insert,index out of range");
                 }
             
             //若表不为空
@@ -235,7 +240,7 @@ class chainz {
                     index = m_count + 1 + index;
                 //若正向索引超出范围,则抛出异常
                 if( index > m_count or index < 0 )
-                    throw std::runtime_error("chainz,insert,索引超出范围");
+                    throw std::runtime_error("chainz,insert,index out of range");
                 
                 //创建新表,将原表中的元素指针映射到新表中,同时插入新的元素的指针
                 R* nr = new R[m_count+1];
@@ -263,7 +268,7 @@ class chainz {
             if( index < 0 )
                 index = m_count + 1 + index;
             if( index >= m_count or index < 0 )
-                throw std::runtime_error( "chainz,remove,索引超出范围" );
+                throw std::runtime_error( "chainz,remove,index out of range" );
             
             //删除index对应位置上的元素
             delete m_pool[index];
@@ -301,7 +306,7 @@ class chainz {
                     return remove[i];
             
             //若执行到此,说明实例不在容器内
-            throw std::runtime_error( "chainz,remover,引用不在链表内" );
+            throw std::runtime_error( "chainz,remover,index out of range" );
         }
 
         /**
@@ -344,7 +349,7 @@ class chainz {
         chainz& pop( OUT T& data ){
             T* p = get(-1);
             if( p == nullptr )
-                throw std::runtime_error( "chainz,pop,索引超出范围" );
+                throw std::runtime_error( "chainz,pop,index out of range" );
             data = *p;
             return pop();
         }
@@ -377,7 +382,7 @@ class chainz {
         chainz& outqueue( OUT T& data ) {
             T* p = get(0);
             if( p == nullptr )
-                throw std::runtime_error( "chainz,outqueue,索引超出范围" );
+                throw std::runtime_error( "chainz,outqueue,index out of range" );
             data = *p;
             return outqueue();
         }
@@ -414,13 +419,13 @@ class chainz {
         T& operator[]( IN int index ) {
             T* p = get(index);
             if( p == nullptr )
-                throw std::runtime_error( "chainz,operator[],索引超出范围" );
+                throw std::runtime_error( "chainz,operator[],index out of range" );
             return *p;
         }
         const T& operator[]( IN int index )const {
             const T* p = get(index);
             if( p == nullptr )
-                throw std::runtime_error( "chainz,operator[]const,索引超出范围" );
+                throw std::runtime_error( "chainz,operator[]const,index out of range" );
             return *p;
         }
 
@@ -433,7 +438,7 @@ class chainz {
             for( size_t i = 0; i < m_count; i++ )
                 if( &ref == m_pool[i] )
                     return i;
-            throw std::runtime_error("chainz,index,引用不在链表内");
+            throw std::runtime_error("chainz,index,instance doesn't exist");
         }
 
         /**
@@ -473,6 +478,8 @@ class chainz {
 
 };
 
-
+#if defined __apheader__
 }
+#endif
+
 #endif

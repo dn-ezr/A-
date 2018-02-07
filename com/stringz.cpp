@@ -1,12 +1,16 @@
 #ifndef __stringz_cpp__
 #define __stringz_cpp__
 
-#include <apheader.hpp>
 #include <stringz.hpp>
-#include <exceptz.hpp>
 #include <utility>
 
+#if defined __apheader__
+#include <exceptz.hpp>
 namespace ap {
+#else
+#include <stdexcept>
+using exceptz = std::runtime_error;
+#endif
 
 const size_t stringz::null = -1;
 
@@ -142,12 +146,12 @@ stringz::operator const char*()const{
 
 char& stringz::operator[]( IN size_t pos ){
     if( pos >= m_count )
-        throw exceptz("stringz,operator[],索引超出范围");
+        throw exceptz("stringz,operator[],index out of range");
     return m_buf[pos];
 }
 const char& stringz::operator[]( IN size_t pos )const{
     if( pos >= m_count )
-        throw exceptz("stringz,operator[],索引超出范围");
+        throw exceptz("stringz,operator[],index out of range");
     return m_buf[pos];
 }
 
@@ -257,7 +261,7 @@ stringz& stringz::replace_all( IN const stringz& from, const stringz& to ){
 }
 stringz& stringz::insert( IN const stringz& str, size_t offset ){
     if( offset > m_count )
-        throw exceptz("stringz,insert,偏移量超出串范围");
+        throw exceptz("stringz,insert,offset out of range");
     if( str.m_count != 0 ) {
         char *buf = new char[m_count+str.m_count+1];
         memcpy( buf, m_buf, offset );
@@ -388,5 +392,8 @@ stringz stringz::json( const char* json ) {
     return std::move(s);
 }
 
+#if defined __apheader__
 }
+#endif
+
 #endif
