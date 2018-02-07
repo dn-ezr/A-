@@ -1,12 +1,13 @@
 #ifndef __exceptz_cpp__
 #define __exceptz_cpp__
 
-#include "apheader.hpp"
-#include "exceptz.hpp"
+#include <exceptz.hpp>
 #include <stdarg.h>
 #include <string>
 
+#if defined __apheader__
 namespace ap {
+#endif
 
 exceptz::exceptz(const stringz& format, ... )_GLIBCXX_USE_NOEXCEPT:
 wt(format) {
@@ -45,5 +46,8 @@ const char* exceptz::what() const _GLIBCXX_USE_NOEXCEPT {
     return wt.length()?&wt[0]:nullptr;
 }
 
+#if defined __apheader__
 }
+#endif
+
 #endif

@@ -12,7 +12,9 @@
 #include <exception>
 #include <stringz.hpp>
 
+#if defined __apheader__
 namespace ap {
+#endif
 
 /**
  * exceptz从标准exception类继承任何特性
@@ -43,5 +45,8 @@ class exceptz: public std::exception {
         virtual const char* what() const _GLIBCXX_USE_NOEXCEPT;
 };
 
+#if defined __apheader__
 }
+#endif
+
 #endif

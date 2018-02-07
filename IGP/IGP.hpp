@@ -12,12 +12,12 @@
 
 namespace IGP {
 
-using string    = ap::stringz;
-using strings   = ap::chainz<string>;
-using sequence  = ap::chainz<formula>;
-using sequences = ap::chainz<sequence>;
-using tokens    = ap::chainz<token>;
-using patterns  = ap::chainz<pattern>;
+using string    = stringz;
+using strings   = chainz<string>;
+using sequence  = chainz<formula>;
+using sequences = chainz<sequence>;
+using tokens    = chainz<token>;
+using patterns  = chainz<pattern>;
 
 /**
  * eformula enumerates all type of formulas

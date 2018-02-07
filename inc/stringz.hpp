@@ -12,7 +12,7 @@
 
 #if defined __apheader__
 namespace ap {
-#elif
+#else
 #define OUT
 #define OPT
 #define IN
