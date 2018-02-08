@@ -64,6 +64,8 @@ class gamma {
                 lexical_formula( const lexical_formula& another );
                 lexical_formula( lexical_formula&& temp );
                 ~lexical_formula();
+
+                lexical_formula& operator=( const lexical_formula& another );
         };
 
         /**
@@ -84,6 +86,8 @@ class gamma {
                 lexical_pattern( const lexical_pattern& another );
                 lexical_pattern( lexical_pattern&& temp );
                 ~lexical_pattern();
+
+                lexical_pattern& operator=( const lexical_pattern& another );
         };
 
         /**
@@ -103,9 +107,14 @@ class gamma {
                 token( const token& another );
                 token( token&& temp );
                 ~token();
+
+                void clear();
         };
 
     protected:
+
+        const static stringz context_global;
+
         /**
          * functional members.
          */
@@ -137,7 +146,7 @@ class gamma {
          * @param logger : this parameter is used to receive logs generated
          * @return bool : this return value tells the status of this action
          */
-        bool lexical_formula( chainz<stringz>& logger );
+        bool lexical_formula( lexical_formula& formula, chainz<stringz>& logger );
 
     public:
         gamma();
@@ -161,7 +170,7 @@ class gamma {
          * @return bool: wether this action was successfully executed.
          * @statement: to parser source code to be a token list;
          */
-        bool lexical_parse( const stringz& code, stringz& logger, chainz<token>& vocabulary );
+        bool lexical_parse( const stringz& code, chainz<stringz>& logger, chainz<token>& vocabulary );
 };
 
 #if defined __apheader__

@@ -46,6 +46,14 @@ const char* exceptz::what() const _GLIBCXX_USE_NOEXCEPT {
     return wt.length()?&wt[0]:nullptr;
 }
 
+exceptz::operator stringz&(){
+    return wt;
+}
+
+exceptz::operator stringz&&(){
+    return std::move(wt);
+}
+
 #if defined __apheader__
 }
 #endif

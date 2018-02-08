@@ -43,6 +43,8 @@ class exceptz: public std::exception {
         
         virtual ~exceptz()_GLIBCXX_USE_NOEXCEPT;
         virtual const char* what() const _GLIBCXX_USE_NOEXCEPT;
+        operator stringz&();
+        operator stringz&&();
 };
 
 #if defined __apheader__

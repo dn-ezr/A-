@@ -247,4 +247,4 @@ These context names are listed after the pattern name using a '**@**' symbol.
 
 ### 7.2. context lead
 
-A token could lead a change of context, you can perform this action by declare a context name after the whole pattern using '**->**'.
+A token could lead a change of context, you can perform this action by declare a context name after the whole pattern using '**=**'.
