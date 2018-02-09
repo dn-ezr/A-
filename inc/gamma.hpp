@@ -57,7 +57,8 @@ class gamma {
                 modifier_type           modifier;   //the modifier of this formula
                 formula_format          format;     //the type of this formula
                 stringz                 flat;       //For st,ch,nt,re, flat is the containing
-                chainz<lexical_formula> operands;   //For se,in,su, operands is the containing
+                chainz<chainz<lexical_formula>> 
+                                        operands;   //For se,in,su, operands is the containing
             
             public:
                 lexical_formula();

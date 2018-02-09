@@ -66,6 +66,15 @@ gamma::lexical_pattern::~lexical_pattern(){
 
 }
 
+gamma::lexical_pattern& gamma::lexical_pattern::operator=( const lexical_pattern& another ) {
+    inline_mark = another.inline_mark;
+    whole_name = another.whole_name;
+    contexts = another.contexts;
+    formulas = another.formulas;
+    ending = another.ending;
+    next_context = another.next_context;
+}
+
 gamma::token::token():
 column(0),
 line(0){
@@ -165,7 +174,9 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
                     case whitespace:break;
                     case '~':pattern.inline_mark = true;step(estate::bname);break;
                     case name:
-                        jump(estate::iname);break;
+                        pattern.inline_mark = false;
+                        jump(estate::iname);
+                        break;
                     default:
                         logger << std::move(exceptz("error:%d,%d;Invaild symbol '%c' occurred.",line,column,source_code[offset]));
                         return -1;
@@ -299,8 +310,8 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
                 struct lexical_formula formula;
                 switch(source_code[offset]) {
                     case whitespace:break;
-                    case '\"':case '\'':case '`':case '[':
                     case '?':case '+':case '*':
+                    case '\"':case '\'':case '`':case '[':
                     case name:
                         if( lexical_formula( formula, logger ) ){
                             pattern.formulas << formula;
@@ -449,6 +460,207 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
 
 bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& logger ) {
 
+    enum class estate {
+        bmo,    //before the modifier
+        amo,    //after the modifier
+        blq,    //before the first character of the left quoter
+        alq,    //after the left quoter
+        bfu,    //before a formula
+        afu,    //after a formula
+        arq,    //after the right quoter
+    }   state = estate::bmo;
+    bool bstay = false; //wether the machine should wait for a round
+
+    chainz<struct lexical_formula> operand; //for some format of formulas
+
+    //this function is used to swallow one or more characters and switch to another state
+    auto step = [&]( estate s, int swallow = 1 ){state = s;offset += swallow;column += swallow;bstay = true;};
+    //this function is used to switch to another state but stay at the current character for one round.
+    auto jump = [&]( estate s ){state = s;bstay = true;};
+
+    //start the machine
+    while( state != estate::arq ){
+
+        //check wether the source code have been paid off.
+        if( offset == source_code.length() ) {
+            return false;
+        }
+
+        switch( state ) {
+
+            //wait for a modifier or any start of an formula
+            case estate::bmo:{
+                switch( source_code[offset] ) {
+                    case '?':formula.modifier = lexical_formula::op;step(estate::amo);break;
+                    case '+':formula.modifier = lexical_formula::om;step(estate::amo);break;
+                    case '*':formula.modifier = lexical_formula::an;step(estate::amo);break;
+                    case '"':case '\'':case '`':case '[':
+                    case name:formula.modifier = lexical_formula::no;jump(estate::blq);break;
+                    case whitespace:break;
+                    case newline:
+                        logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
+                        return false;
+                    default:
+                        logger << std::move(exceptz("error:%d,%d;Invaild symbol '%c' occurred.",line,column,source_code[offset]));
+                        return false;
+                }
+            }break;
+
+            //after the modifier,  waiting for any start of the formula
+            case estate::amo:{
+                switch( source_code[offset] ) {
+                    case whitespace:break;
+                    case name:formula.format = lexical_formula::re;jump(estate::alq);break;
+                    case '"':formula.format = lexical_formula::st;step(estate::alq);break;
+                    case '\'':formula.format = lexical_formula::ch;step(estate::alq);break;
+                    case '`':formula.format = lexical_formula::nt;step(estate::alq);break;
+                    case '[':step(estate::blq);break;
+                    case newline:
+                        logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
+                        return false;
+                    default:
+                        logger << std::move(exceptz("error:%d,%d;Invaild symbol '%c' occurred.",line,column,source_code[offset]));
+                        return false;
+                }
+            }break;
+
+            //after the '[' character, to make sure what format it is exactly
+            case estate::blq:{
+                switch( source_code[offset] ) {
+                    case '&':formula.format = lexical_formula::in;step(estate::alq);break;
+                    case '-':formula.format = lexical_formula::su;step(estate::alq);break;
+                    default:formula.format = lexical_formula::se;jump(estate::alq);break;
+                }
+            }break;
+
+            //the format of formula has been determined, to solve the contents.
+            case estate::alq:{
+                switch( formula.format ) {
+
+                    case lexical_formula::re: {
+                        switch( source_code[offset] ) {
+                            case '.':
+                            case name:formula.flat += source_code[offset];break;
+                            default:
+                                if( 
+                                    formula.flat == stringz("numb") or 
+                                    formula.flat == stringz("numo") or 
+                                    formula.flat == stringz("numd") or 
+                                    formula.flat == stringz("numh") or 
+                                    formula.flat == stringz("lower") or
+                                    formula.flat == stringz("upper") or
+                                    formula.flat == stringz("letter") or
+                                    formula.flat == stringz("space") or
+                                    formula.flat == stringz("punct") or
+                                    formula.flat == stringz("any")
+                                )formula.format = lexical_formula::bi;
+                            jump(estate::arq);break;
+                        }
+                    }break;
+                    case lexical_formula::st:
+                    case lexical_formula::ch:
+                    case lexical_formula::nt:
+                        if( source_code[offset-1] == '\\' ) {
+                            switch( source_code[offset] ) {
+                                case '\\':formula.flat += '\\';break;
+                                case '\"':formula.flat += '\"';break;
+                                case '\'':formula.flat += '\'';break;
+                                case '`':formula.flat += '`';break;
+                                case 'n':formula.flat += '\n';break;
+                                case 'r':formula.flat += '\r';break;
+                                case 't':formula.flat += '\t';break;
+                                default:
+                                    logger << std::move(exceptz("error:%d,%d;Invaild escape sequence '\\%c'.",line,column,source_code[offset]));
+                                    return false;
+                            }break;
+                        } else if( 
+                            (formula.format == lexical_formula::st and source_code[offset] == '\"')or
+                            (formula.format == lexical_formula::ch and source_code[offset] == '\'')or
+                            (formula.format == lexical_formula::nt and source_code[offset] == '`' )) {
+                            step(estate::arq);
+                            break;
+                        } else if( source_code[offset] == '\\' ) {
+                            break;
+                        } else switch( source_code[offset] ) {
+                            case newline:
+                                logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
+                                return false;
+                            default:
+                                formula.flat += source_code[offset];
+                                break;
+                        }break;
+                    case lexical_formula::se:
+                    case lexical_formula::in:
+                    case lexical_formula::su:
+                        jump(estate::bfu);
+                        break;
+                }
+            }break;
+
+            //for formulas have operands
+            case estate::bfu:{
+                operand.clear();
+                switch( source_code[offset] ) {
+                    case whitespace:break;
+                    case newline:
+                        logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
+                        return false;
+                    case '?':case '+':case '*':
+                    case '\"':case '\'':case '`':case '[':
+                    case name: {
+                        struct lexical_formula fu;
+                        if( lexical_formula( fu, logger ) ) {
+                            operand << std::move(fu);
+                            jump(estate::afu);
+                            break;
+                        }else {
+                            return false;
+                        }
+                    }break;
+                    default:
+                        logger << std::move(exceptz("error:%d,%d;Invaild symbol '%c' occurred.",line,column,source_code[offset]));
+                        return false;
+                }
+            }break;
+
+            //after a formula wait for another formula or a ']' or a ','
+            case estate::afu:{
+                switch( source_code[offset] ) {
+                    case whitespace:break;
+                    case newline:
+                        logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
+                        return false;
+                    case ',':formula.operands << std::move(operand);step(estate::bfu);break;
+                    case ']':formula.operands << std::move(operand);step(estate::arq);break;    //TODO here to check the count of operands
+                    case '?':case '+':case '*':
+                    case '\"':case '\'':case '`':case '[':
+                    case name: {
+                        struct lexical_formula fu;
+                        if( lexical_formula( fu, logger ) ) {
+                            operand << std::move(fu);
+                            jump(estate::afu);
+                            break;
+                        }else {
+                            return false;
+                        }
+                    }break;
+                    default:
+                        logger << std::move(exceptz("error:%d,%d;Invaild symbol '%c' occurred.",line,column,source_code[offset]));
+                        return false;
+                }
+            }break;
+        }
+
+        //now move the pointer
+        if( bstay ){
+            bstay = false;
+        } else {
+            offset += 1;
+            column += 1;
+        }
+    }
+
+    return true;
 }
 
 gamma::gamma(){
@@ -482,11 +694,8 @@ bool gamma::lexical_grammar( const stringz& code, chainz<stringz>& logger ) {
     }while( ret > 0 );
 
     /**
-     * check the grammars to be available.
+     * TODO check the grammars to be available.
      */
-
-    //TODO
-
 
     return ret >= 0;
 }
