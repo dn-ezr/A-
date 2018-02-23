@@ -67,6 +67,7 @@ class gamma {
                 ~lexical_formula();
 
                 lexical_formula& operator=( const lexical_formula& another );
+                stringz to_string();
         };
 
         /**
@@ -89,6 +90,7 @@ class gamma {
                 ~lexical_pattern();
 
                 lexical_pattern& operator=( const lexical_pattern& another );
+                stringz to_string();
         };
 
         /**
@@ -149,6 +151,13 @@ class gamma {
          */
         bool lexical_formula( lexical_formula& formula, chainz<stringz>& logger );
 
+        /**
+         * @name : match_name_mapping
+         * @param whole : the whole name which will be mapped to layers
+         * @param layer : one or several layers of a name
+         * @return bool : whether the parameter layer could be contained by the parameter whole.
+         */
+        static bool match_name_mapping( const stringz& whole, const stringz& layer);
     public:
         gamma();
         ~gamma();
@@ -162,6 +171,13 @@ class gamma {
          * ---- make the source code into a safe-parsing character pointer and initial the environment
          */
         bool lexical_grammar( const stringz& code, chainz<stringz>& logger );
+
+        /**
+         * @name: lexical_grammar
+         * @return stringz: the lexical grammars the lexical_patterns stands for
+         * @statement: get the grammar codes, this function used to debug.
+         */
+        stringz lexical_grammar();
 
         /**
          * @name: lexical_parse

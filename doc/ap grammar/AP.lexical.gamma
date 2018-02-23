@@ -1,0 +1,11 @@
+#AP.lexical.grammar for gamma lexical parser
+
+~name : [alpha,'$_']
+
+keyword.module@global : "module" ; space = module-name
+label.module@module-name : name = module-after-name
+keyword.module.model@module-after-name : ':' = module-model
+keyword.module.header@module-after-name : "header" = module-header;
+keyword.module.entry@module-after-name : "entry" = module-entry;
+
+keyword.module.end@module-header,module-entry,module-after-path : ';' = global

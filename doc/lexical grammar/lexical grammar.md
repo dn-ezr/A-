@@ -184,7 +184,7 @@ These **built-in pattern**s were expressed to be some format that will be used f
 ~numh : [numd,'abcdefABCDEF']
 ~lower: 'abcdefghijklmnopqrstuvwxyz'
 ~upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-~letter:[lower,upper]
+~alpha: [lower,upper]
 ~space: ' \n\r\t\v'
 ~punct: '`~!@#$%^&*()-=_+[]{}|;:",./<>?\'\\'
 ~~~
@@ -248,3 +248,53 @@ These context names are listed after the pattern name using a '**@**' symbol.
 ### 7.2. context lead
 
 A token could lead a change of context, you can perform this action by declare a context name after the whole pattern using '**=**'.
+
+## 8. Behaviors
+
+### 8.1. match percentage
+
+Consider this lexical grammar:
+
+~~~IGP-L
+label : +[alpha,'_']
+keyword : "module"
+~~~
+
+The rule of **label** could match any **keyword**, that means the source code "module" could take two **terminator name** of "label" and "keyword".
+
+That is obviously puzzling. We need a system to tell us what terminator name the author really wants or most wants, that is **match percentage**.
+$$
+match\ percentage = \frac{1}{\sum formula}
+$$
+For example,  in this case, match percentage of **label** will be $\frac1{'m'+'o'+'d'+'u'+'l'+'e'} = \frac1{alpha\times6}=\frac1 6$
+
+And for **keyword** : $\frac1{"module"\times1}=1$
+
+Then you can choose to keep the terminator name of the largest match percentage or order all terminator names by match percentage, so you can tell what do you really wanted.
+
+### 8.2. capture more
+
+~~~flow
+st=>start: start
+ctc=>operation: capture a character
+tst=>condition: test :
+rules all matched
+ts2=>condition: test :
+rules all not matched
+cts=>operation: clean rules doesn't matched
+ctp=>operation: count match percentage
+otr=>operation: order and record terminator
+ed=>end: end
+
+st->ctc
+ctc->tst
+tst(no,left)->ts2
+tst(yes)->ctc
+ts2(no)->cts
+cts(right)->ctc
+ts2(yes)->ctp
+ctp->otr
+otr->ed
+~~~
+
+IGP will always try to capture the text with the longer formula.

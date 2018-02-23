@@ -184,9 +184,8 @@ class chainz {
          * ---- 容器原有数据会被清空
          */
         chainz& operator=( const chainz& another ) {
-            clear();
-            for( int i = 0; i < another.m_count; i++ )
-                push( another[i] );
+            chainz temp = another;
+            *this = std::move(temp);
             return *this;
         }
 
@@ -197,11 +196,12 @@ class chainz {
          * ---- 容器原有数据会被清空
          */
         chainz& operator=( chainz&& temp ) {
+            chainz tempz = std::move(temp);
             clear();
-            m_pool = temp.m_pool;
-            m_count = temp.m_count;
-            temp.m_count = 0;
-            temp.m_pool = nullptr;
+            m_pool = tempz.m_pool;
+            m_count = tempz.m_count;
+            tempz.m_count = 0;
+            tempz.m_pool = nullptr;
         }
 
         /**

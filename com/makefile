@@ -11,7 +11,7 @@ all: $(OUT_DIR)/libap.a
 clean:
 	rm -rf $(OBJ_DIR)/*.o
 
-$(OBJ):../obj/%.o:%.cpp
+$(OBJ):$(OBJ_DIR)/%.o:%.cpp
 	g++ $(CXX_OPT) -o $@  $<
 
 $(OUT_DIR)/libap.a:$(OBJ)

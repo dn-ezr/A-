@@ -4,6 +4,7 @@
 
 #include <gamma.hpp>
 #include <exceptz.hpp>
+#include <functional>
 
 #if defined __apheader__
 namespace ap {
@@ -34,6 +35,74 @@ operands(std::move(temp.operands)){
 
 gamma::lexical_formula::~lexical_formula() {
 
+}
+
+struct gamma::lexical_formula& gamma::lexical_formula::operator=( const lexical_formula& another ) {
+    modifier = another.modifier;
+    format = another.format;
+    flat = another.flat;
+    operands = another.operands;
+}
+
+stringz gamma::lexical_formula::to_string() {
+    stringz str;
+
+    switch( modifier ) {
+        case om:str += '+';break;
+        case an:str += '*';break;
+        case op:str += '?';break;
+        case no:break;
+    }
+
+    switch( format ) {
+        case st:
+            str += '"';
+            str += flat;
+            str += '"';
+            break;
+        case ch:
+            str += '\'';
+            str += flat;
+            str += '\'';
+            break;
+        case nt:
+            str += '`';
+            str += flat;
+            str += '`';
+            break;
+        case re:case bi:
+            str += flat;
+            break;
+        case se:
+            str += '[';
+            for( auto& operand : operands ){
+                for( auto& formula : operand )
+                    str += formula.to_string();
+                str += ',';
+            }
+            str[str.length()-1] = ']';
+            break;
+        case in:
+            str += "[&";
+            for( auto& operand : operands ){
+                for( auto& formula : operand )
+                    str += formula.to_string();
+                str += ',';
+            }
+            str[str.length()-1] = ']';
+            break;
+        case su:
+            str += "[-";
+            for( auto& operand : operands ){
+                for( auto& formula : operand )
+                    str += formula.to_string();
+                str += ',';
+            }
+            str[str.length()-1] = ']';
+            break;
+    }
+
+    return std::move(str);
 }
 
 gamma::lexical_pattern::lexical_pattern():
@@ -73,6 +142,33 @@ gamma::lexical_pattern& gamma::lexical_pattern::operator=( const lexical_pattern
     formulas = another.formulas;
     ending = another.ending;
     next_context = another.next_context;
+}
+
+stringz gamma::lexical_pattern::to_string() {
+    stringz str;
+
+    if( inline_mark ) str += '~';
+    str += whole_name;
+    if( contexts.size() > 0 ) {
+        str += '@';
+        for( auto& context : contexts ) {
+            str += context;
+            str += ',';
+        }
+        str[str.length()-1] = ':';
+    } else
+        str += ':';
+    for( auto& formula : formulas )
+        str += formula.to_string();
+    if( ending.format != lexical_formula::em ){
+        str += ';';
+        str += ending.to_string();
+    }
+    if( next_context.length()>0){
+        str += '=';
+        str += next_context;
+    }
+    return std::move(str);
 }
 
 gamma::token::token():
@@ -444,15 +540,66 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
         }
     }
 
+    //check the references and replace them with the real pattern formulas.
+    std::function<void(struct lexical_formula&)> replace = [&]( struct lexical_formula& formula ) {
+        if( formula.format == lexical_formula::re ) {
+            formula.operands.clear();
+            for( auto& pattern : lexical_patterns )
+                if( match_name_mapping( pattern.whole_name, formula.flat ) ) {
+                    formula.format = lexical_formula::se;
+                    formula.flat.clear();
+                    formula.operands << pattern.formulas;
+                }
+        } else if( 
+            formula.format == lexical_formula::se or
+            formula.format == lexical_formula::su or
+            formula.format == lexical_formula::in )
+            for( auto& operand : formula.operands )
+                for( auto& formulax : operand )
+                    replace(formulax);
+    };
+    for( auto& formula : pattern.formulas )
+        replace(formula);
+    
+    //check and simplify the formula
+    std::function<void(chainz<struct lexical_formula>&)> 
+    simplify = [&]( chainz<struct lexical_formula>& formulas ) {
+        for( auto& formula : formulas ) switch( formula.format ) {
+            case lexical_formula::se:
+            case lexical_formula::in:
+            case lexical_formula::su:
+                for( auto& operand : formula.operands )
+                    simplify(operand);
+                if( formula.modifier == lexical_formula::no and formula.operands.size() == 1 ) {
+                    int index = formulas.index(formula);
+                    for( int i = 0; i < formula.operands[0].size(); i++ )
+                        formulas.insert( formula.operands[0][i], index+i+1 );
+                    formulas.remove(index);
+                } else if( formula.operands.size() == 1 and formula.operands[0].size() == 1 ) {
+                    lexical_formula::modifier_type t = formula.modifier;
+                    formula = formula.operands[0][0];
+                    formula.modifier = t;
+                }
+        }
+    };
+    simplify(pattern.formulas);
+
     //check wether the pattern could be used, and insert it into the patterns.
     if( pattern.whole_name.length() > 0 ) {
         lexical_pattern* sam = nullptr;
         for( lexical_pattern& ptn :lexical_patterns )
             if( ptn.whole_name == pattern.whole_name )
                 sam = &ptn;
-        if( sam != nullptr ) *sam = pattern;
-        else lexical_patterns << pattern;
+        if( sam != nullptr ) {
+            *sam = pattern;
+            logger << stringz("replace: ")+pattern.to_string();
+        } else {
+            lexical_patterns << pattern;
+            logger << stringz("generate: ")+pattern.to_string();
+        }
     }
+
+    //TODO : check the minimal expression of the pattern to confirm if it could be used.
 
     //parsed a pattern successfully
     return 1;
@@ -463,7 +610,7 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
     enum class estate {
         bmo,    //before the modifier
         amo,    //after the modifier
-        blq,    //before the first character of the left quoter
+        blq,    //before the second character of the left quoter
         alq,    //after the left quoter
         bfu,    //before a formula
         afu,    //after a formula
@@ -495,7 +642,7 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
                     case '+':formula.modifier = lexical_formula::om;step(estate::amo);break;
                     case '*':formula.modifier = lexical_formula::an;step(estate::amo);break;
                     case '"':case '\'':case '`':case '[':
-                    case name:formula.modifier = lexical_formula::no;jump(estate::blq);break;
+                    case name:formula.modifier = lexical_formula::no;jump(estate::amo);break;
                     case whitespace:break;
                     case newline:
                         logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
@@ -549,7 +696,7 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
                                     formula.flat == stringz("numh") or 
                                     formula.flat == stringz("lower") or
                                     formula.flat == stringz("upper") or
-                                    formula.flat == stringz("letter") or
+                                    formula.flat == stringz("alpha") or
                                     formula.flat == stringz("space") or
                                     formula.flat == stringz("punct") or
                                     formula.flat == stringz("any")
@@ -663,6 +810,17 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
     return true;
 }
 
+bool gamma::match_name_mapping( const stringz& whole, const stringz& layer ) {
+    chainz<stringz> layers;
+    layers << whole;
+    for( size_t off = whole.find( "."); off != stringz::null; off = whole.find(".",off) )
+        layers << std::move(stringz(whole,off));
+    for( auto& l : layers )
+        if( l == layer )
+            return true;
+    return false;
+}
+
 gamma::gamma(){
 
 }
@@ -700,13 +858,18 @@ bool gamma::lexical_grammar( const stringz& code, chainz<stringz>& logger ) {
     return ret >= 0;
 }
 
+stringz gamma::lexical_grammar(){
+    stringz str;
+    for( auto& pattern : lexical_patterns ){
+        str += pattern.to_string();
+        str += '\n';
+    }
+    return std::move(str);
+}
+
 bool gamma::lexical_parse( const stringz& code, chainz<stringz>& logger, chainz<token>& vocabulary ) {
 
 }
-
-
-
-
 
 #if defined __apheader__
 namespace ap {
