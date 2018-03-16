@@ -47,6 +47,21 @@ struct gamma::lexical_formula& gamma::lexical_formula::operator=( const lexical_
 stringz gamma::lexical_formula::to_string() {
     stringz str;
 
+    stringz flat;
+    for( size_t o = 0; o < this->flat.length(); o++ ) {
+        switch( this->flat[o] ) {
+            case '\t':flat += "\\t";break;
+            case '\n':flat += "\\n";break;
+            case '\v':flat += "\\v";break;
+            case '\\':flat += "\\\\";break;
+            case '\"':flat += "\\\"";break;
+            case '\'':flat += "\\\'";break;
+            case '`':flat += "\\`";break;
+            default:
+                flat += this->flat[o];
+        }
+    }
+
     switch( modifier ) {
         case om:str += '+';break;
         case an:str += '*';break;
@@ -489,6 +504,7 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
                 switch( source_code[offset] ) {
                     case whitespace:break;
                     case name:
+                        pattern.next_context.clear();
                         jump(estate::inextcont);break;
                     case newline:
                         logger << std::move(exceptz("error:%d,%d;Invalid ending of pattern.",line,column));
@@ -547,7 +563,7 @@ int gamma::lexical_grammar( chainz<stringz>& logger ){
             for( auto& pattern : lexical_patterns )
                 if( match_name_mapping( pattern.whole_name, formula.flat ) ) {
                     formula.format = lexical_formula::se;
-                    formula.flat.clear();
+                    //formula.flat.clear(); //if I clear the flat,  it would not match the second pattern
                     formula.operands << pattern.formulas;
                 }
         } else if( 
@@ -813,7 +829,7 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
 bool gamma::match_name_mapping( const stringz& whole, const stringz& layer ) {
     chainz<stringz> layers;
     layers << whole;
-    for( size_t off = whole.find( "."); off != stringz::null; off = whole.find(".",off) )
+    for( size_t off = whole.find( "."); off != stringz::null; off = whole.find(".",off+1) )
         layers << std::move(stringz(whole,off));
     for( auto& l : layers )
         if( l == layer )

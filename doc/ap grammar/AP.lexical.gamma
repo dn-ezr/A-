@@ -1,11 +1,21 @@
 #AP.lexical.grammar for gamma lexical parser
 
-~name : [alpha,'$_']
+~name : [alpha,'_']
+~name : name*[name,numd]
 
-keyword.module@global : "module" ; space = module-name
-label.module@module-name : name = module-after-name
-keyword.module.model@module-after-name : ':' = module-model
-keyword.module.header@module-after-name : "header" = module-header;
-keyword.module.entry@module-after-name : "entry" = module-entry;
+# keyword.module should be the first keyword detected
+# module declaration should be in one line.
+keyword.module@global : "module" ; ' \t' = def-module
 
-keyword.module.end@module-header,module-entry,module-after-path : ';' = global
+#after the module token, there should be a label of this module
+label.@def-module,code : name ; ' \t' = type-module
+
+#after the label of the module you can endup or declar more detail of this module
+keyword.model@type-module: "model" ; '; \t'
+keyword.entry@type-module : "entry"; '; \t'
+keyword.module-end@type-module : ';' = code
+
+#in the environment of "code" there is no keyword named "module" or "model" .etc
+#we can use these token freely
+
+keyword.import@code : "import"
