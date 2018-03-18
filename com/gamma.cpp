@@ -723,7 +723,7 @@ bool gamma::lexical_formula( struct lexical_formula& formula, chainz<stringz>& l
                     case lexical_formula::st:
                     case lexical_formula::ch:
                     case lexical_formula::nt:
-                        if( source_code[offset-1] == '\\' ) {
+                        if( source_code[offset-1] == '\\' and source_code[offset-2] != '\\' ) {
                             switch( source_code[offset] ) {
                                 case '\\':formula.flat += '\\';break;
                                 case '\"':formula.flat += '\"';break;

@@ -8,14 +8,72 @@
 keyword.module@global : "module" ; ' \t' = def-module
 
 #after the module token, there should be a label of this module
-label.@def-module,code : name ; ' \t' = type-module
+label.module@def-module : name ; ' \t' = type-module
 
 #after the label of the module you can endup or declar more detail of this module
-keyword.model@type-module: "model" ; '; \t'
+keyword.model@type-module : "model"; '; \t'
 keyword.entry@type-module : "entry"; '; \t'
 keyword.module-end@type-module : ';' = code
 
 #in the environment of "code" there is no keyword named "module" or "model" .etc
 #we can use these token freely
+keyword.import@code : "import"; ' \t' = imp-module
+label.dependence@imp-module : name ; ' \t' = code
 
-keyword.import@code : "import"
+#
+#here are all keywords
+#
+#data type
+keyword.type.int@code	 : "int"
+keyword.type.int8@code	 : "int8"
+keyword.type.int16@code  : "int16"
+keyword.type.int32@code  : "int32"
+keyword.type.int64@code  : "int64"
+keyword.type.uint8@code  : "uint8"
+keyword.type.uint16@code : "uint16"
+keyword.type.uint32@code : "uint32"
+keyword.type.uint64@code : "uint64"
+keyword.type.float32@code: "float32"
+keyword.type.float64@code: "float64"
+keyword.type.bool@code	 : "bool"
+
+#keywords used to define something
+keyword.def.enum@code    : "enum"
+keyword.def.struct@code  : "struct"
+keyword.def.interface    : "interface"
+keyword.def.func         : "func"
+keyword.def.var			 : "var"
+keyword.def.ptr			 : "ptr"
+keyword.def.ref			 : "ref"
+keyword.def.val			 : "val"
+#modifiers for objects
+keyword.modify.public	 : "public"
+keyword.modify.const	 : "const"
+#flow control
+keyword.flow.if			 : "if"
+keyword.flow.else 		 : "else"
+keyword.flow.switch		 : "switch"
+keyword.flow.case		 : "case"
+keyword.flow.default	 : "default"
+keyword.flow.loop		 : "loop"
+keyword.flow.return		 : "return"
+#logical operator
+keyword.logical.and		 : "and"
+keyword.logical.or		 : "or"
+keyword.logical.not		 : "not"
+keyword.logical.xor		 : "xor"
+#values
+keyword.value.true		 : "true"
+keyword.value.false		 : "false"
+keyword.value.null		 : "null"
+keyword.value.this		 : "this"
+
+#Literal expressions
+value.number.b			 : '$' 'bB'  +numb 									; [punct,space]
+value.number.o			 : '$' 'oO'  +numo 									; [punct,space]
+value.number.d			 : '$' ?'dD' +numd 									; [punct,space]
+value.number.h			 : '$' 'hH'  +numh 									; [punct,space]
+value.number.f			 : '$' ?'fF' ?'-+' +numd '.' +numd ?['e'?'-+'+numd] ; [punct,space]
+value.string.magic		 : '\`' +[ `\"\\`, '\\' 'abnrtvx\'\"\`' ] '\`'		; [punct,space]
+value.string.auto		 : '\"' +[ `\"\\`, '\\' 'abnrtvx\'\"\`' ] '\"'		; [punct,space]
+value.string.flat		 : '\'' +[`\\\'`, '\\' '\''] '\''					; [punct,space]
